@@ -1,0 +1,128 @@
+# vim:set expandtab shiftwidth=4 filetype=yaml:
+# SPDX-License-Identifier: GPL-3.0-only
+
+#
+#
+# ~chewygumxx/waybar-weather.git
+# ::: :/.github/workflows/validate.yaml
+#
+#
+
+name: Validate
+
+on:
+    push:
+        branches:
+            - main
+        tags:
+            - v*.*.*
+    pull_request:
+
+permissions:
+    contents: read
+
+jobs:
+    commitlint:
+        name:    Lint Commit Messages
+        runs-on: ubuntu-latest
+        if:      ${{ !startsWith(github.ref, 'refs/tags/') }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+
+            - name: Lint Commit Messages
+              uses: wagoid/commitlint-github-action@v6
+
+    update-header-metadata:
+        name:    Update Header Metdata
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        if:      github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+
+            - name: Update tracked files
+              uses: chewygumxx/sync-header-metadata@v2
+              with:
+                  mode: update
+
+    sync-repo-metadata:
+        name:    Sync Repository Metadata
+        runs-on: ubuntu-latest
+        if:      github.ref_name == 'main'
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+
+            - name: Check for Metadata Changes
+              id:   filter
+              uses: dorny/paths-filter@v4
+              with:
+                  base:    ${{ github.ref }}
+                  filters: |
+                      metadata:
+                          - .repo-metadata.jsonc
+
+            - name: Mint App Installation Token
+              if:   steps.filter.outputs.metadata == 'true'
+              id:   app-token
+              uses: actions/create-github-app-token@v3
+              with:
+                  client-id:   ${{    vars.METADATA_APP_CLIENT_ID   }}
+                  private-key: ${{ secrets.METADATA_APP_PRIVATE_KEY }}
+                  permission-administration: write
+
+            - name: Apply Metadata
+              if:   steps.filter.outputs.metadata == 'true'
+              uses: chewygumxx/sync-repo-metadata@v2
+              with:
+                  metadata_path: .repo-metadata.jsonc
+                  token: ${{ steps.app-token.outputs.token }}
+
+    shellcheck:
+        name:    Shellcheck Linting
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+
+            - name: Shellcheck
+              uses: ludeeus/action-shellcheck@2.0.0
+              with:
+                  additional-files: waybar-weather
+
+    release:
+        name:    Release
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        if: >-
+            always() &&
+            github.ref_type == 'tag' &&
+            (needs.commitlint.result == 'success' || needs.commitlint.result == 'skipped') &&
+            (needs.update-header-metadata.result == 'success' || needs.update-header-metadata.result == 'skipped') &&
+            needs.shellcheck.result == 'success'
+        needs:
+            - commitlint
+            - update-header-metadata
+            - shellcheck
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+
+            - name: Release
+              uses: softprops/action-gh-release@v3
+              with:
+                  files: |
+                      LICENSE
+                      waybar-weather

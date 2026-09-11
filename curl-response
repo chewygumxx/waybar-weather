@@ -67,10 +67,10 @@ map_icon() {
 
 raw_response="$(get_raw_response)"
 current_weather="$(filter_current "$raw_response")"
-icon="$(map_icon "$(printf '%s\n' "$current_weather" | jq '.icon')")"
+icon="$(map_icon "$(printf '%s\n' "$current_weather" | jq -r '.icon')")"
 
 printf '%s\n' \
     "current: $current_weather" \
-    "conditions: $(printf '%s\n' "$current_weather" | jq '.conditions')" \
-    "temp: $(printf '%s\n' "$current_weather" | jq '.temp')" \
-    "icon: $(map_icon "$(printf '%s\n' "$current_weather" | jq '.icon')")"
+    "conditions: $(printf '%s\n' "$current_weather" | jq -r '.conditions')" \
+    "temp: $(printf '%s\n' "$current_weather" | jq -r '.temp')" \
+    "icon: $(map_icon "$(printf '%s\n' "$current_weather" | jq -r '.icon')")"

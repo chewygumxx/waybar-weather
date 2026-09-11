@@ -5,7 +5,7 @@
 #
 #
 # ~chewygumxx/waybar-weather.git
-# ::: :/scripts/curl-current-weather.sh
+# ::: :/waybar-weather
 #
 #
 
@@ -14,7 +14,6 @@ set -euo pipefail
 : "${UNITS:=metric}"
 : "${LOCATION:=Melbourne}"
 : "${VISUALCROSSING_APIKEY:=$(pass-cli item view 'pass://pass-cli/api_visualcrossing/APIKEY')}"
-
 
 get_raw_response() {
     curl \

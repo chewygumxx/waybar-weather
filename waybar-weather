@@ -13,7 +13,7 @@ set -euo pipefail
 
 : "${UNITS:=metric}"
 : "${LOCATION:=Melbourne}"
-: "${VISUALCROSSING_APIKEY:=$(pass-cli item view 'pass://pass-cli/api_visualcrossing/APIKEY')}"
+: "${VISUALCROSSING_APIKEY:=$(cat "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/visualcrossing.apikey")}"
 
 get_raw_response() {
     local encoded_location

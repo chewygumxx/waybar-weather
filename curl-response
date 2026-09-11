@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-: "${UNIT:=metric}"
+: "${UNITS:=metric}"
 : "${LOCATION:=Melbourne}"
 : "${VISUALCROSSING_APIKEY:=$(pass-cli item view 'pass://pass-cli/api_visualcrossing/APIKEY')}"
 
@@ -21,23 +21,14 @@ get_raw_response() {
         --silent \
         --retry 3 \
         --retry-delay 2 \
-        --retry-all-errors \
         --show-error \
         --fail-with-body \
         --get \
         --data-urlencode 'iconSet=icons2' \
         --data-urlencode 'contentType=json' \
-        --data-urlencode "unitGroup=$UNIT" \
+        --data-urlencode "unitGroup=$UNITS" \
         --data-urlencode "key=$VISUALCROSSING_APIKEY" \
         "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$LOCATION"
-}
-
-filter_current() {
-    printf '%s\n' "$1" | jq '.currentConditions | {
-        conditions,
-        temp,
-        icon
-    }'
 }
 
 map_icon() {
@@ -62,15 +53,15 @@ map_icon() {
         *)                     color='#f43755' icon="" ;;
     esac
 
-    printf '<span color="%s">%s<span>' "$color" "$icon"
+    printf '<span color="%s">%s</span>' "$color" "$icon"
 }
 
 unit_symbol() {
-    case "$UNIT" in
+    case "$UNITS" in
         us)     printf '°F' ;;
         metric) printf '°C' ;;
         uk)     printf '°C' ;;
-        base)   printf '°C' ;;
+        base)   printf 'K' ;;
         *)      printf '°' ;;
     esac
 }
@@ -79,29 +70,50 @@ emit_error() {
     jq -nc \
         --arg text "Error $(map_icon '')" \
         --arg tooltip "$1" \
-        '{text: $text, tooltip: $tooltip}'
+        --arg class "error" \
+        '{text: $text, tooltip: $tooltip, class: $class}'
 }
 
-fetch_and_format() {
-    local raw_response current_weather conditions temp icon text
+summarize_error() {
+    local msg
+    msg="$(printf '%s' "$1" | tr '\n' ' ' | cut -c1-200)"
+    if [[ -z "${msg// }" ]]; then
+        msg="Failed to retrieve weather for $LOCATION"
+    fi
+    printf '%s' "$msg"
+}
 
-    raw_response="$(get_raw_response)" || return 1
-    current_weather="$(filter_current "$raw_response")" || return 1
-    conditions="$(printf '%s\n' "$current_weather" | jq -r '.conditions')" || return 1
-    temp="$(printf '%s\n' "$current_weather" | jq -r '.temp')" || return 1
-    icon="$(printf '%s\n' "$current_weather" | jq -r '.icon')" || return 1
+main() {
+    local raw_response raw_tsv conditions temp icon
 
-    text="$(printf '%s %s %s%s' \
-        "$conditions" "$(map_icon "$icon")" "$temp" "$(unit_symbol)" )"
+    if ! raw_response="$(get_raw_response)"; then
+        emit_error "$(summarize_error "$raw_response")"
+        return
+    fi
+
+    if ! raw_tsv="$(printf '%s\n' "$raw_response" | jq -r '
+        .currentConditions
+        | if (.temp | type) != "number" then error("missing temp") else . end
+        | [.conditions, (.temp | tostring), .icon]
+        | @tsv
+    ')"; then
+        emit_error "Failed to parse weather data for $LOCATION"
+        return
+    fi
+
+    IFS=$'\t' read -r conditions temp icon <<< "$raw_tsv"
 
     jq -nc \
-        --arg text "$text" \
-        --arg tooltip "$conditions" \
-        '{text: $text, tooltip: $tooltip}'
+        --arg conditions "$conditions" \
+        --arg icon_span "$(map_icon "$icon")" \
+        --arg temp "$temp" \
+        --arg unit "$(unit_symbol)" \
+        --arg icon "$icon" \
+        '{
+            text: (($conditions | @html) + " " + $icon_span + " " + $temp + $unit),
+            tooltip: ($conditions | @html),
+            class: $icon
+        }'
 }
 
-if output="$(fetch_and_format)"; then
-    printf '%s\n' "$output"
-else
-    emit_error "Failed to retrieve weather for $LOCATION"
-fi
+main

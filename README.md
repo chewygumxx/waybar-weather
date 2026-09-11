@@ -37,7 +37,10 @@ The script reads these environment variables:
 |------------------------|---------------|--------------------------------------------------------------|
 | `LOCATION`             | `Melbourne`   | City to query                                                |
 | `UNITS`                | `metric`      | Visual Crossing `unitGroup`: `us`, `metric`, `uk`, or `base` |
+| `ICON_SIZE`            | `100%`        | Pango markup [`font_size`] applied to icon                   |
 | `VISUALCROSSING_APIKEY`| unset         | API key                                                      |
+
+[`font_size`]: <https://docs.gtk.org/Pango/pango_markup.html#:~:text=font%5Fsize>
 
 If `VISUALCROSSING_APIKEY` is unset, the key is read from a file named
 `visualcrossing.apikey` next to the script.
@@ -56,7 +59,7 @@ Wire it into Waybar's config as a custom module:
     "interval": 900,
     "return-type": "json",
     "exec-if": "ls \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/modules/waybar-weather/visualcrossing.apikey\"",
-    "exec": "LOCATION=Melbourne \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/modules/waybar-weather/waybar-weather\""
+    "exec": "LOCATION=Melbourne UNITS=metric ICON_SIZE=130% \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/modules/waybar-weather/waybar-weather\""
 }
 ```
 

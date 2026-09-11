@@ -13,6 +13,7 @@ set -euo pipefail
 
 : "${UNITS:=metric}"
 : "${LOCATION:=Melbourne}"
+: "${ICON_SIZE:=100\%}"
 : "${VISUALCROSSING_APIKEY:=$(cat "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/visualcrossing.apikey")}"
 
 get_raw_response() {
@@ -55,7 +56,7 @@ map_icon() {
         *)                     color='#f43755' icon="" ;;
     esac
 
-    printf '<span color="%s">%s</span>' "$color" "$icon"
+    printf '<span font_size="%s" color="%s">%s</span>' "$ICON_SIZE" "$color" "$icon"
 }
 
 unit_symbol() {

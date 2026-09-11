@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-: "${UNITS:=metric}"
+: "${UNIT:=metric}"
 : "${LOCATION:=Melbourne}"
 : "${VISUALCROSSING_APIKEY:=$(pass-cli item view 'pass://pass-cli/api_visualcrossing/APIKEY')}"
 
@@ -27,7 +27,7 @@ get_raw_response() {
         --get \
         --data-urlencode 'iconSet=icons2' \
         --data-urlencode 'contentType=json' \
-        --data-urlencode "unitGroup=$UNITS" \
+        --data-urlencode "unitGroup=$UNIT" \
         --data-urlencode "key=$VISUALCROSSING_APIKEY" \
         "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$LOCATION"
 }
@@ -41,36 +41,67 @@ filter_current() {
 }
 
 map_icon() {
-    local icon
+    local color icon
     case "$1" in
-        wind)                  icon="" ;;
-        fog)                   icon="" ;;
-        clear-day)             icon="" ;;
-        clear-night)           icon="" ;;
-        cloudy)                icon="" ;;
-        partly-cloudy-night)   icon="" ;;
-        partly-cloudy-day)     icon="" ;;
-        rain)                  icon="" ;;
-        showers-day)           icon="" ;;
-        showers-night)         icon="" ;;
-        thunder-rain)          icon="" ;;
-        thunder-showers-day)   icon="" ;;
-        thunder-showers-night) icon="" ;;
-        snow)                  icon="" ;;
-        snow-showers-day)      icon="" ;;
-        snow-showers-night)    icon="" ;;
-        *)                     icon="" ;;
+        wind)                  color='#b3deef' icon="" ;;
+        fog)                   color='#b3deef' icon="" ;;
+        clear-day)             color='#ffc24b' icon="" ;;
+        clear-night)           color='#cad6ff' icon="" ;;
+        cloudy)                color='#aaaaaa' icon="" ;;
+        partly-cloudy-night)   color='#cad6ff' icon="" ;;
+        partly-cloudy-day)     color='#ffc24b' icon="" ;;
+        rain)                  color='#7171d3' icon="" ;;
+        showers-day)           color='#73cef4' icon="" ;;
+        showers-night)         color='#73cef4' icon="" ;;
+        thunder-rain)          color='#f0fb3e' icon="" ;;
+        thunder-showers-day)   color='#f0fb3e' icon="" ;;
+        thunder-showers-night) color='#f0fb3e' icon="" ;;
+        snow)                  color='#e8e0ff' icon="" ;;
+        snow-showers-day)      color='#e8e0ff' icon="" ;;
+        snow-showers-night)    color='#e8e0ff' icon="" ;;
+        *)                     color='#f43755' icon="" ;;
     esac
 
-    printf '%s' "$icon"
+    printf '<span color="%s">%s<span>' "$color" "$icon"
 }
 
-raw_response="$(get_raw_response)"
-current_weather="$(filter_current "$raw_response")"
-icon="$(map_icon "$(printf '%s\n' "$current_weather" | jq -r '.icon')")"
+unit_symbol() {
+    case "$UNIT" in
+        us)     printf '°F' ;;
+        metric) printf '°C' ;;
+        uk)     printf '°C' ;;
+        base)   printf '°C' ;;
+        *)      printf '°' ;;
+    esac
+}
 
-printf '%s\n' \
-    "current: $current_weather" \
-    "conditions: $(printf '%s\n' "$current_weather" | jq -r '.conditions')" \
-    "temp: $(printf '%s\n' "$current_weather" | jq -r '.temp')" \
-    "icon: $(map_icon "$(printf '%s\n' "$current_weather" | jq -r '.icon')")"
+emit_error() {
+    jq -nc \
+        --arg text "Error $(map_icon '')" \
+        --arg tooltip "$1" \
+        '{text: $text, tooltip: $tooltip}'
+}
+
+fetch_and_format() {
+    local raw_response current_weather conditions temp icon text
+
+    raw_response="$(get_raw_response)" || return 1
+    current_weather="$(filter_current "$raw_response")" || return 1
+    conditions="$(printf '%s\n' "$current_weather" | jq -r '.conditions')" || return 1
+    temp="$(printf '%s\n' "$current_weather" | jq -r '.temp')" || return 1
+    icon="$(printf '%s\n' "$current_weather" | jq -r '.icon')" || return 1
+
+    text="$(printf '%s %s %s%s' \
+        "$conditions" "$(map_icon "$icon")" "$temp" "$(unit_symbol)" )"
+
+    jq -nc \
+        --arg text "$text" \
+        --arg tooltip "$conditions" \
+        '{text: $text, tooltip: $tooltip}'
+}
+
+if output="$(fetch_and_format)"; then
+    printf '%s\n' "$output"
+else
+    emit_error "Failed to retrieve weather for $LOCATION"
+fi

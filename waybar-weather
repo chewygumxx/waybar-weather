@@ -16,6 +16,9 @@ set -euo pipefail
 : "${VISUALCROSSING_APIKEY:=$(pass-cli item view 'pass://pass-cli/api_visualcrossing/APIKEY')}"
 
 get_raw_response() {
+    local encoded_location
+    encoded_location="$(jq -rn --arg location "$LOCATION" '$location | @uri')"
+
     curl \
         --silent \
         --retry 3 \
@@ -27,7 +30,7 @@ get_raw_response() {
         --data-urlencode 'contentType=json' \
         --data-urlencode "unitGroup=$UNITS" \
         --data-urlencode "key=$VISUALCROSSING_APIKEY" \
-        "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$LOCATION"
+        "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$encoded_location"
 }
 
 map_icon() {

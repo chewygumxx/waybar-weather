@@ -1,0 +1,27 @@
+// vim:set expandtab shiftwidth=4 filetype=jsonc:
+// SPDX-License-Identifier: GPL-3.0-only
+
+//
+//
+// ~chewygumxx/waybar-weather.git
+// ::: :/.repo-metadata.jsonc
+//
+//
+
+{
+    "$schema": "https://raw.githubusercontent.com/chewygumxx/sync-repo-metadata/refs/tags/v2/schema.json",
+    "name":  "waybar-weather",
+    "owner": "chewygumxx",
+    "slug":  "chewygumxx/waybar-weather",
+    "default_branch": "main",
+    "description": "[Waybar Module] Returns current weather stats",
+    "category": "waybar-module",
+    "topics": [ "waybar-module", "waybar", "weather" ],
+    "immutable_releases": true,
+    "license": {
+        "filepath":  "./LICENSE",
+        "spdx_id":   "GPL-3.0-only",
+        "full_name": "GNU General Public License v3.0 only",
+        "url":       "https://spdx.org/licenses/GPL-3.0-only"
+    }
+}

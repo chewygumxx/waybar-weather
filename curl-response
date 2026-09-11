@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# vim:set expandtab shiftwidth=4 filetype=bash:
+# SPDX-License-Identifier: GPL-3.0-only
+
+#
+#
+# ~chewygumxx/waybar-weather.git
+# ::: :/scripts/curl-current-weather.sh
+#
+#
+
+set -euo pipefail
+
+: "${UNITS:=metric}"
+: "${LOCATION:=Melbourne}"
+: "${VISUALCROSSING_APIKEY:=$(pass-cli item view 'pass://pass-cli/api_visualcrossing/APIKEY')}"
+
+
+get_raw_response() {
+    curl \
+        --silent \
+        --retry 3 \
+        --retry-delay 2 \
+        --retry-all-errors \
+        --show-error \
+        --fail-with-body \
+        --get \
+        --data-urlencode 'iconSet=icons2' \
+        --data-urlencode 'contentType=json' \
+        --data-urlencode "unitGroup=$UNITS" \
+        --data-urlencode "key=$VISUALCROSSING_APIKEY" \
+        "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/$LOCATION"
+}
+
+filter_current() {
+    printf '%s\n' "$1" | jq '.currentConditions | {
+        conditions,
+        temp,
+        icon
+    }'
+}
+
+map_icon() {
+    local icon
+    case "$1" in
+        wind)                  icon="" ;;
+        fog)                   icon="" ;;
+        clear-day)             icon="" ;;
+        clear-night)           icon="" ;;
+        cloudy)                icon="" ;;
+        partly-cloudy-night)   icon="" ;;
+        partly-cloudy-day)     icon="" ;;
+        rain)                  icon="" ;;
+        showers-day)           icon="" ;;
+        showers-night)         icon="" ;;
+        thunder-rain)          icon="" ;;
+        thunder-showers-day)   icon="" ;;
+        thunder-showers-night) icon="" ;;
+        snow)                  icon="" ;;
+        snow-showers-day)      icon="" ;;
+        snow-showers-night)    icon="" ;;
+        *)                     icon="" ;;
+    esac
+
+    printf '%s' "$icon"
+}
+
+raw_response="$(get_raw_response)"
+current_weather="$(filter_current "$raw_response")"
+icon="$(map_icon "$(printf '%s\n' "$current_weather" | jq '.icon')")"
+
+printf '%s\n' \
+    "current: $current_weather" \
+    "conditions: $(printf '%s\n' "$current_weather" | jq '.conditions')" \
+    "temp: $(printf '%s\n' "$current_weather" | jq '.temp')" \
+    "icon: $(map_icon "$(printf '%s\n' "$current_weather" | jq '.icon')")"

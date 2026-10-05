@@ -1,11 +1,21 @@
-<!-- vim:set expandtab shiftwidth=2 filetype=markdown: -->
-<!-- SPDX-License-Identifier: GPL-3.0-only -->
+---
+ctime: 2026-09-11
+mtime: 2026-10-05
+spdx: GPL-3.0-only
+title: waybar-weather
+description: >-
+  [Waybar Module] Returns current weather stats
+tags:
+  - waybar
+  - weather
+  - bash
+---
 
 <!--
-   - 
+   -
    - ~chewygumxx/waybar-weather.git
    - ::: :/README.md
-   - 
+   -
    -->
 
 # waybar-weather
@@ -70,3 +80,5 @@ the inline Pango markup in `text` renders instead of printing literally.
 ## License
 
 GPL-3.0-only, see [LICENSE](./LICENSE).
+
+<!-- vim:set expandtab shiftwidth=2 filetype=markdown: -->
